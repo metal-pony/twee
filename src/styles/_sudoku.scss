@@ -1,0 +1,286 @@
+.sieve-controls-container {
+  display: flex;
+  width: fit-content;
+  flex-direction: column;
+}
+
+.sudoku-input {
+  font-family: monospace;
+  font-size: 12px;
+
+  // &::selection {
+  //   background-color: #2682fa;
+  // }
+}
+
+#sieve-items-container {
+  // display: flex;
+  flex-wrap: wrap;
+  width: min-content;
+  max-width: 750px;
+  max-height: 400px;
+  justify-content: left;
+
+  >.sieve-items-select {
+    background-color: rgba($color: #000000, $alpha: 0.0);
+    font-family: 'Roboto Mono', monospace;
+    border: none;
+
+    >option.sieve-item {
+      font-size: 12px;
+
+      &:checked {
+        background-color: var(--primary);
+        color: var(--light);
+      }
+    }
+
+    &:focus-visible {
+      outline: none;
+    }
+  }
+}
+
+.sieve-items-boards-container {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  max-width: 750px;
+  max-height: 400px;
+  gap: 8px;
+  justify-content: center;
+  overflow-y: scroll;
+}
+
+.sudoku-container {
+  display: flex;
+  justify-content: center;
+}
+
+.sudoku-board {
+  --sudoku-region-bg: #000000;
+  --sudoku-region-odd: #000000;
+  --sudoku-region-bg-odd: #000000;
+
+  --sudoku-cell: #0000ff;
+  --sudoku-cell-given: var(--dark);
+  --sudoku-cell-solved: var(--dark);
+  --sudoku-cell-selected-color: var(--dark);
+
+  --sudoku-cell-border: black;
+
+  --sudoku-cell-bg: var(--light);
+  --sudoku-cell-bg-given: var(--grey-3);
+  --sudoku-cell-bg-hover: #b4e6ff;
+  --sudoku-cell-bg-selected: #b4e6ff;
+  --sudoku-cell-bg-solved: #b4ffe6;
+  --sudoku-cell-bg-given-solved: #87c0ac;
+  --sudoku-cell-bg-sieve-item: #dc97eb;
+  --sudoku-cell-bg-region-selected: var(--light-grey);
+
+  --sudoku-invalid-1: #ffaaaa;
+  --sudoku-invalid-2: #ff7777;
+  --sudoku-invalid-3: #ff3333;
+  --sudoku-invalid-1-given: #663636;
+  --sudoku-invalid-2-given: #aa5a5a;
+  --sudoku-invalid-3-given: #ff8888;
+
+  --size-m-region-gap: 4px;
+  --size-m-cell-gap: 2px;
+  --size-m-cell-size: 36px;
+  --size-m-font-size: 20px;
+
+  --size-s-region-gap: 2px;
+  --size-s-cell-gap: 1px;
+  --size-s-cell-size: 28px;
+  --size-s-font-size: 16px;
+
+  --size-xs-region-gap: 2px;
+  --size-xs-cell-gap: 1px;
+  --size-xs-cell-size: 16px;
+  --size-xs-font-size: 12px;
+
+  --size-xxs-region-gap: 1px;
+  --size-xxs-cell-gap: 0px;
+  --size-xxs-cell-size: 12px;
+  --size-xxs-font-size: 10px;
+
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  grid-template-rows: repeat(3, 1fr);
+
+  gap: var(--size-m-region-gap);
+
+  >div.sudoku-region {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    grid-template-rows: repeat(3, 1fr);
+    grid-gap: var(--size-m-cell-gap);
+
+    >.sudoku-cell {
+      width: var(--size-m-cell-size);
+      height: var(--size-m-cell-size);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-size: var(--size-m-font-size);
+      font-weight: 400;
+      background-color: var(--sudoku-cell-bg);
+      color: var(--sudoku-cell);
+      border: none;
+
+      &:hover {
+        background-color: var(--sudoku-cell-bg-hover);
+      }
+
+      &:focus {
+        background-color: var(--sudoku-cell-bg-selected);
+        // color: var(--sudoku-cell-selected-color);
+      }
+
+      &.invalid-1 {
+        background-color: var(--sudoku-invalid-1);
+      }
+      &.invalid-2 {
+        background-color: var(--sudoku-invalid-2);
+      }
+      &.invalid-3 {
+        background-color: var(--sudoku-invalid-3);
+      }
+
+      &.given {
+        // background-color: var(--sudoku-cell-bg-given);
+        color: var(--sudoku-cell-given);
+        font-weight: 700;
+
+        &.solved {
+          background-color: var(--sudoku-cell-bg-given-solved);
+          color: var(--sudoku-cell-solved);
+        }
+      }
+
+      &.solved {
+        background-color: var(--sudoku-cell-bg-solved);
+        color: var(--sudoku-cell-solved);
+      }
+
+      &:focus-visible {
+        outline: none;
+      }
+
+      &.sieve-item {
+        background-color: var(--sudoku-cell-bg-sieve-item);
+      }
+    }
+  }
+
+  &.size-full {
+
+  }
+
+  &.size-s {
+    font-weight: unset;
+    gap: var(--size-s-region-gap);
+
+    >div.sudoku-region {
+      gap: var(--size-s-cell-gap);
+
+      >.sudoku-cell {
+        width: var(--size-s-cell-size);
+        height: var(--size-s-cell-size);
+        font-size: var(--size-s-font-size);
+      }
+    }
+  }
+
+  &.size-xs {
+    font-weight: unset;
+    gap: var(--size-xs-region-gap);
+
+    >div.sudoku-region {
+      gap: var(--size-xs-cell-gap);
+
+      >.sudoku-cell {
+        width: var(--size-xs-cell-size);
+        height: var(--size-xs-cell-size);
+        font-size: var(--size-xs-font-size);
+      }
+    }
+  }
+
+  &.size-xxs {
+    font-weight: unset;
+    gap: var(--size-xxs-region-gap);
+
+    >div.sudoku-region {
+      gap: var(--size-xxs-cell-gap);
+
+      >.sudoku-cell {
+        width: var(--size-xxs-cell-size);
+        height: var(--size-xxs-cell-size);
+        font-size: var(--size-xxs-font-size);
+      }
+    }
+  }
+
+  &.reduction-matrix {
+    >div.sudoku-region {
+      >.sudoku-cell {
+        font-size: var(--size-xs-font-size);
+
+        &:active {
+          border: none;
+        }
+      }
+    }
+  }
+}
+
+.sudoku-print-page {
+  background-color: white;
+  color: black;
+
+  .grid-picker {
+    display: grid;
+    grid-template-rows: auto;
+    // grid-template-columns: repeat(8, min-content);
+    gap: 2px;
+
+    >.cell {
+      width: 16px;
+      height: 16px;
+
+      &.selected, &:hover {
+        background-color: #c4c4ff;
+      }
+    }
+  }
+
+  .grid-container {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    column-gap: 16px;
+    row-gap: 16px;
+    // width: min-content;
+
+    .sudoku-container {
+      margin: auto;
+      background-color: black;
+      border: 1px solid black;
+
+      >.sudoku-board{
+        >.sudoku-region {
+          >.sudoku-cell {
+            background-color: white;
+
+            &.given {
+              background-color: white;
+              font-weight: 700;
+            }
+          }
+        }
+      }
+    }
+  }
+}

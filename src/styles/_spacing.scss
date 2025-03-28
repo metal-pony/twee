@@ -1,0 +1,41 @@
+@use 'sass:list';
+
+$dashes: ('', '-', '--', '---', '----', '-----', '------');
+@each $d in $dashes {
+  $i: list.index($dashes, $d) - 1;
+  .m#{$i}, .m#{$d} { margin: var(--spacing-#{$i}); }
+  .mx#{$i}, .mx#{$d} { margin-left: var(--spacing-#{$i}); margin-right: var(--spacing-#{$i}); }
+  .my#{$i}, .my#{$d} { margin-top: var(--spacing-#{$i}); margin-bottom: var(--spacing-#{$i}); }
+  .ml#{$i}, .ml#{$d} { margin-left: var(--spacing-#{$i}); }
+  .mr#{$i}, .mr#{$d} { margin-right: var(--spacing-#{$i}); }
+  .mt#{$i}, .mt#{$d} { margin-top: var(--spacing-#{$i}); }
+  .mb#{$i}, .mb#{$d} { margin-bottom: var(--spacing-#{$i}); }
+
+  .p#{$i}, .p#{$d} { padding: var(--spacing-#{$i}); }
+  .px#{$i}, .px#{$d} { padding-left: var(--spacing-#{$i}); padding-right: var(--spacing-#{$i}); }
+  .py#{$i}, .py#{$d} { padding-top: var(--spacing-#{$i}); padding-bottom: var(--spacing-#{$i}); }
+  .pl#{$i}, .pl#{$d} { padding-left: var(--spacing-#{$i}); }
+  .pr#{$i}, .pr#{$d} { padding-right: var(--spacing-#{$i}); }
+  .pt#{$i}, .pt#{$d} { padding-top: var(--spacing-#{$i}); }
+  .pb#{$i}, .pb#{$d} { padding-bottom: var(--spacing-#{$i}); }
+
+  .row-gap#{$i}, .row-gap#{$d} { row-gap: var(--spacing-#{$i}); }
+  .col-gap#{$i}, .col-gap#{$d} { column-gap: var(--spacing-#{$i}); }
+}
+
+.m-a { margin: auto; }
+.mx-a { margin-left: auto; margin-right: auto; }
+.my-a { margin-top: auto; margin-bottom: auto; }
+.ml-a { margin-left: auto; }
+.mr-a { margin-right: auto; }
+.mt-a { margin-top: auto; }
+.mb-a { margin-bottom: auto; }
+
+.w-full { width: 100%; }
+.w-narrow { width: 60%; }
+.w-half { width: 50%; }
+.w-third { width: 33%; }
+.w-quarter { width: 25%; }
+.w-fit { width: fit-content; }
+
+.h-full { height: 100%; }

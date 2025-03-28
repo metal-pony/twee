@@ -1,0 +1,94 @@
+@use 'sass:color';
+@use 'sass:list';
+@use 'sass:map';
+
+$spacing-values: (4px, 8px, 16px, 24px, 32px, 64px, 128px);
+$colors: (
+  'primary': #00aaff,
+  'secondary': #00ffaa,
+  'evil': #ff0033,
+  'warn': #ffdd00,
+  'dark': #282828,
+  'dark-grey': #565656,
+  'grey': #808080,
+  'light-grey': #cccccc,
+  'light': #f5f5f5,
+  'gold': #eedd00
+);
+$shaded-colors: ('primary', 'secondary', 'evil', 'warn');
+
+:root {
+  // all color vars (non-shaded)
+  @each $name, $value in $colors { --#{$name}: #{$value}; }
+
+  // grey shades from 1 (dark) to 9 (light)
+  $g: -25.625;
+  @for $i from 1 through 9 {
+    --grey-#{$i}: #{color.adjust(
+      map.get($colors, 'light'),
+      $red: $g * ($i - 1), $green: $g * ($i - 1), $blue: $g * ($i - 1),
+      $space: rgb
+    )};
+  }
+
+  --deep-space-blue: #0c0c17;
+  --grey-blue: #1f2a55;
+  --deep-blue: #00123f;
+  --transparent: #000000ff;
+
+  --background-color: var(--dark);
+  --text-color: #c0c0f0;
+  --link-color: var(--light);
+  --border-color: #var(--light);
+  --box-shadow-color: rgba(0, 0, 0, 0.75);
+
+  --primary-button-bg: #0066cc;
+
+  --blockquote-background-color: #d0d0d0;
+  --blockquote-color: #000000;
+
+  --inline-code-background-color: #d0d0d0;
+  --inline-code-color: #333333;
+  --inline-code-border-color: var(--border-color);
+
+  --table-background-color: #d0d0d0;
+  --table-content-color: #333333;
+  --table-border-color: var(--border-color);
+  --table-body-row-border-color: #a0a0a0;
+  --table-row-0-background-color: #b5b5b5;
+  --table-row-1-background-color: #888888;
+  --table-row-2-background-color: #aaaaaa;
+
+  --table-row-highlight-background-color: #00000042;
+
+  --goats-color: #{color.scale(map.get($colors, 'secondary'), $alpha: -50%)};
+  --goats-color-: #{color.scale(map.get($colors, 'secondary'), $alpha: -66%)};
+  --goats-eartag-color: var(--gold);
+  --goats-subtext-color: #aaaaaaaa;
+
+  // Shaded colors
+  @each $name in $shaded-colors {
+    // darker
+    @for $i from 1 through 9 {
+      --#{$name}-#{$i}: #{color.scale(
+        map.get($colors, $name),
+        $red: -10% * $i, $green: -10% * $i, $blue: -10% * $i,
+        $space: rgb
+      )};
+    }
+
+    // lighter
+    @for $i from 1 through 9 {
+      --#{$name}-light-#{$i}: #{color.scale(
+        map.get($colors, $name),
+        $red: 10% * $i, $green: 10% * $i, $blue: 10% * $i,
+        $space: rgb
+      )};
+    }
+  }
+
+  // Spacing
+  @for $i from 0 to list.length($spacing-values) {
+    --spacing-#{$i}: #{list.nth($spacing-values, $i+1)};
+  }
+}
