@@ -1,6 +1,7 @@
 // Reference: https://webpack.js.org/configuration/
 
 import path from 'path';
+import CopyWebpackPlugin from 'copy-webpack-plugin';
 
 /** @type {import('webpack').Configuration} */
 export default {
@@ -23,16 +24,38 @@ export default {
             presets: ['@babel/preset-env', '@babel/preset-react']
           }
         }
+      },
+      {
+        test: /\.s[ac]ss$/,
+        use: [
+          'style-loader',
+          'css-loader',
+          'sass-loader'
+        ]
       }
     ]
   },
 
   resolve: {
-    extensions: ['.js', '.jsx', '.json'],
+    extensions: ['.js', '.jsx', '.json', '.scss'],
     modules: ['node_modules']
   },
 
+  plugins: [
+    new CopyWebpackPlugin({
+      patterns: [
+        path.resolve('./public')
+      ]
+    }),
+  ],
+
   devtool: 'inline-source-map',
+  devServer: {
+    static: {
+     directory: 'dist'
+    },
+    port: 3047
+  },
   watchOptions: {
     ignored: /node_modules/,
   },

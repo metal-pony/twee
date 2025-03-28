@@ -1,7 +1,11 @@
 node_modules/
 build/
 dist/
+out/
+log/
+*.log
 
 .env
 env.properties
 .npmrc
+.DS_Store
