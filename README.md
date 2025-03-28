@@ -6,4 +6,4 @@
 
 A basic drawing app to create pixelated masterpieces.
 
-<img src="./doc/pixel-editor.png" alt="Screenshot of pixel editor" width="33%"/>
+<img src="./readme/pixel-editor.png" alt="Screenshot of pixel editor" width="33%"/>
