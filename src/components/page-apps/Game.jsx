@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { bounded, Engine, GridScene } from '@metal-pony/bucket-js';
 import Page from '../page/Page';
+import classNames from 'classnames';
 
 const scene = new GridScene({
   name: 'main',
@@ -72,6 +73,7 @@ export function Game({}) {
   const [gridWidth, setGridWidth] = useState(scene.cols);
   const [gridHeight, setGridHeight] = useState(scene.rows);
   const [showGrid, setShowGrid] = useState(scene.showGrid);
+  const [tool, setTool] = useState('pencil');
 
   useEffect(() => {
     const canvas = canvasRef?.current;
@@ -85,13 +87,37 @@ export function Game({}) {
       } else {
         // Get the cell that was clicked
         const rect = canvas.getBoundingClientRect();
-        const x = bounded(Math.floor((ev.clientX - rect.left) / scene.cellSize), 0, scene.cols - 1);
-        const y = bounded(Math.floor((ev.clientY - rect.top) / scene.cellSize), 0, scene.rows - 1);
+        let x = bounded(Math.floor((ev.clientX - rect.left) / scene.cellSize), 0, scene.cols - 1);
+        let y = bounded(Math.floor((ev.clientY - rect.top) / scene.cellSize), 0, scene.rows - 1);
 
-        // Set the cell color
-        scene.cellData(x, y).color = selectedColor;
-        console.log(`Set cell (${x}, ${y}) to color ${selectedColor}`);
-        drawPreviewPixel(previewCanvasRef, x, y, selectedColor);
+        if (tool === 'fill') {
+          const prevColor = scene.cellData(x, y).color;
+          if (prevColor === selectedColor) return;
+
+          const queue = [{x,y}];
+          let count = 0;
+          let max = scene.cols * scene.rows;
+          while (queue.length > 0 && count < max) {
+            ({ x, y } = queue.shift());
+            if (x < 0 || y < 0 || x >= scene.cols || y >= scene.rows) continue;
+
+            const cd = scene.cellData(x, y);
+            const c = cd.color;
+            if (c !== prevColor) continue;
+
+            count++;
+            cd.color = selectedColor;
+            drawPreviewPixel(previewCanvasRef, x, y, selectedColor);
+
+            queue.push({ x, y: y - 1 });
+            queue.push({ y, x: x - 1 });
+            queue.push({ x, y: y + 1 });
+            queue.push({ y, x: x + 1 });
+          }
+        } else {
+          scene.cellData(x, y).color = selectedColor;
+          drawPreviewPixel(previewCanvasRef, x, y, selectedColor);
+        }
 
         engine.render();
       }
@@ -107,6 +133,7 @@ export function Game({}) {
 
     // When the mouse moves, if dragging, set the color of the cell that is hovered over
     canvas.onmousemove = (ev) => {
+      if (tool === 'fill') return;
       if (isDragging) {
         const rect = canvas.getBoundingClientRect();
         const x = bounded(Math.floor((ev.clientX - rect.left) / scene.cellSize), 0, scene.cols - 1);
@@ -118,9 +145,10 @@ export function Game({}) {
     }
 
     // Prevent context menu from appearing
-    // canvas.oncontextmenu = (ev) => {
-    //   ev.preventDefault();
-    // };
+    canvas.oncontextmenu = (ev) => {
+      ev.preventDefault();
+    };
+
     engine.connect(canvas);
     engine.switchToScene('main');
     engine.start();
@@ -129,7 +157,7 @@ export function Game({}) {
       engine.stop();
       engine.shutdown();
     };
-  }, [selectedColor]);
+  }, [selectedColor, tool]);
 
   const paletteColorsPerRow = 6;
   const palette = [
@@ -154,7 +182,26 @@ export function Game({}) {
     drawPreview(previewCanvasRef);
   };
 
-  console.log('Game component rendering');
+
+  /**
+   * @param {string} toolName
+   * @param {string} iconClasses
+   */
+  const createToolButton = (toolName, iconClasses) => (
+    <div
+      className={
+        classNames('center border-2 items-center', {
+          'border-primary': tool === toolName,
+          'bg-primary': tool === toolName,
+          'bg-light': tool !== toolName
+        })
+      }
+      style={{ width: '32px', height: '32px' }}
+      onClick={() => { setTool(toolName); }}
+    >
+      <i className={iconClasses} style={{color: '#000000'}}></i>
+    </div>
+  );
 
   return (
     <Page includeGoats={false} includeNav={false}>
@@ -222,6 +269,12 @@ export function Game({}) {
                 engine.render();
               }}
             />
+          </div>
+
+          {/* Tools */}
+          <div className='flex-horizontal right col-gap'>
+            { createToolButton('pencil', 'fa-solid fa-pencil fa-xl') }
+            { createToolButton('fill', 'fa-solid fa-fill-drip fa-flip-horizontal fa-xl') }
           </div>
 
           {/* Color Palette */}
