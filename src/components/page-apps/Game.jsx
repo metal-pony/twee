@@ -127,21 +127,29 @@ export function Game({}) {
             queue.push({ x, y: y + 1 });
             queue.push({ y, x: x + 1 });
           }
-        } else {
+        } else if (tool === 'pencil') {
           scene.cellData(x, y).color = selectedColor;
           drawPreviewPixel(previewCanvasRef, x, y, selectedColor);
+        } else if (tool === 'eraser') {
+          scene.cellData(x, y).color = transparent;
         }
 
         engine.render();
       }
     }
 
+    // Used during mouse movent to determine if repainting is necessary
+    const lastCoord = { x: 0, y: -1 };
     window.onmousedown = (ev) => {
       if (ev.button === 0) isDragging = true;
     }
     // Stop dragging when the mouse is released outside the canvas
     window.onmouseup = (ev) => {
-      if (ev.button === 0) isDragging = false;
+      if (ev.button === 0) {
+        isDragging = false;
+        lastCoord.x = 0;
+        lastCoord.y = -1;
+      }
     }
 
     // When the mouse moves, if dragging, set the color of the cell that is hovered over
@@ -151,8 +159,21 @@ export function Game({}) {
         const rect = canvas.getBoundingClientRect();
         const x = bounded(Math.floor((ev.clientX - rect.left) / scene.cellSize), 0, scene.cols - 1);
         const y = bounded(Math.floor((ev.clientY - rect.top) / scene.cellSize), 0, scene.rows - 1);
-        scene.cellData(x, y).color = selectedColor;
-        drawPreviewPixel(previewCanvasRef, x, y, selectedColor);
+
+        // Prevent drag on same cell from rapidly rerendering unneccessarily
+        if (x === lastCoord.x && y === lastCoord.y) {
+          return;
+        }
+        lastCoord.x = x;
+        lastCoord.y = y;
+
+        let newColor = selectedColor;
+        if (tool === 'eraser') {
+          newColor = transparent;
+        }
+
+        scene.cellData(x, y).color = newColor;
+        drawPreviewPixel(previewCanvasRef, x, y, newColor);
         engine.render();
       }
     }
@@ -278,6 +299,7 @@ export function Game({}) {
           {/* Tools */}
           <div className='flex-horizontal right col-gap'>
             { createToolButton('pencil', 'fa-solid fa-pencil fa-xl') }
+            { createToolButton('eraser', 'fa-solid fa-eraser fa-xl') }
             { createToolButton('fill', 'fa-solid fa-fill-drip fa-flip-horizontal fa-xl') }
           </div>
 
