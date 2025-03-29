@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { bounded, Engine, GridScene } from '@metal-pony/bucket-js';
 import Page from '../page/Page';
+import classNames from 'classnames';
 
 const scene = new GridScene({
   name: 'main',
@@ -52,6 +53,7 @@ function drawPreviewPixel(previewCanvasRef, x, y, color) {
   if (previewCanvasRef.current) {
     const previewCanvas = previewCanvasRef.current;
     const previewCtx = previewCanvas.getContext('2d');
+    previewCtx.clearRect(x, y, 1, 1);
     previewCtx.fillStyle = color;
     previewCtx.fillRect(x, y, 1, 1);
   }
@@ -60,108 +62,93 @@ function drawPreviewPixel(previewCanvasRef, x, y, color) {
 /**
  *
  * @param {object} props
- * @returns
  */
 export function Game({}) {
-  console.log('Game component loading');
-
-  /**
-   * @type {React.RefObject<HTMLCanvasElement>}
-   */
+  /** @type {React.RefObject<HTMLCanvasElement>}*/
   const canvasRef = useRef(null);
-  /**
-   * @type {React.RefObject<HTMLCanvasElement>}
-   */
+  /** @type {React.RefObject<HTMLCanvasElement>}*/
   const previewCanvasRef = useRef(null);
-  /** @type {string} */
-  const [capturedImgData, setCapturedImgData] = useState(null);
   const [selectedColor, setSelectedColor] = useState('#000000');
   const [cellSize, setCellSize] = useState(scene.cellSize);
   const [gridWidth, setGridWidth] = useState(scene.cols);
   const [gridHeight, setGridHeight] = useState(scene.rows);
   const [showGrid, setShowGrid] = useState(scene.showGrid);
+  const [tool, setTool] = useState('pencil');
 
   useEffect(() => {
-    console.log('useEffect loading');
-
     const canvas = canvasRef?.current;
-
-    if (!canvas) {
-      throw new Error('Canvas not found. Cannot initialize engine.');
-    }
-
     let isDragging = false;
-    /**
-     *
-     * @param {MouseEvent} ev
-     */
+
     canvas.onclick = (ev) => {
-      // When control is held, restart the scene
+      // When SHIFT is held, restart the scene
       if (ev.shiftKey) {
         console.log('Restarting scene');
-        if (engine.status === 'IN_PROGRESS') {
-          engine.stop();
-        }
         engine.resetScene();
       } else {
-        // if (engine.isRunning) {
-        //   engine.stop();
-        // } else {
-        //   engine.start();
-        // }
-
         // Get the cell that was clicked
         const rect = canvas.getBoundingClientRect();
-        const x = bounded(Math.floor((ev.clientX - rect.left) / scene.cellSize), 0, scene.cols - 1);
-        const y = bounded(Math.floor((ev.clientY - rect.top) / scene.cellSize), 0, scene.rows - 1);
+        let x = bounded(Math.floor((ev.clientX - rect.left) / scene.cellSize), 0, scene.cols - 1);
+        let y = bounded(Math.floor((ev.clientY - rect.top) / scene.cellSize), 0, scene.rows - 1);
 
-        // Set the cell color
-        scene.cellData(x, y).color = selectedColor;
-        console.log(`Set cell (${x}, ${y}) to color ${selectedColor}`);
-        drawPreviewPixel(previewCanvasRef, x, y, selectedColor);
+        if (tool === 'fill') {
+          const prevColor = scene.cellData(x, y).color;
+          if (prevColor === selectedColor) return;
+
+          const queue = [{x,y}];
+          let count = 0;
+          let max = scene.cols * scene.rows;
+          while (queue.length > 0 && count < max) {
+            ({ x, y } = queue.shift());
+            if (x < 0 || y < 0 || x >= scene.cols || y >= scene.rows) continue;
+
+            const cd = scene.cellData(x, y);
+            const c = cd.color;
+            if (c !== prevColor) continue;
+
+            count++;
+            cd.color = selectedColor;
+            drawPreviewPixel(previewCanvasRef, x, y, selectedColor);
+
+            queue.push({ x, y: y - 1 });
+            queue.push({ y, x: x - 1 });
+            queue.push({ x, y: y + 1 });
+            queue.push({ y, x: x + 1 });
+          }
+        } else {
+          scene.cellData(x, y).color = selectedColor;
+          drawPreviewPixel(previewCanvasRef, x, y, selectedColor);
+        }
 
         engine.render();
       }
     }
 
-    /**
-     *
-     * @param {MouseEvent} ev
-     */
     window.onmousedown = (ev) => {
-      console.log('(window) Mouse down');
-      if (ev.button === 0) {
-        isDragging = true;
-      }
+      if (ev.button === 0) isDragging = true;
     }
-    // Also stop dragging when the mouse is released outside the canvas
+    // Stop dragging when the mouse is released outside the canvas
     window.onmouseup = (ev) => {
-      console.log('(window) Mouse up');
-      if (ev.button === 0) {
-        isDragging = false;
-      }
+      if (ev.button === 0) isDragging = false;
     }
 
     // When the mouse moves, if dragging, set the color of the cell that is hovered over
     canvas.onmousemove = (ev) => {
+      if (tool === 'fill') return;
       if (isDragging) {
         const rect = canvas.getBoundingClientRect();
         const x = bounded(Math.floor((ev.clientX - rect.left) / scene.cellSize), 0, scene.cols - 1);
         const y = bounded(Math.floor((ev.clientY - rect.top) / scene.cellSize), 0, scene.rows - 1);
-        console.log(`Dragging over cell (${x}, ${y})`);
-
-        // Set the cell color
         scene.cellData(x, y).color = selectedColor;
-        console.log(`Set cell (${x}, ${y}) to color ${selectedColor}`);
         drawPreviewPixel(previewCanvasRef, x, y, selectedColor);
         engine.render();
       }
     }
 
     // Prevent context menu from appearing
-    // canvas.oncontextmenu = (ev) => {
-    //   ev.preventDefault();
-    // };
+    canvas.oncontextmenu = (ev) => {
+      ev.preventDefault();
+    };
+
     engine.connect(canvas);
     engine.switchToScene('main');
     engine.start();
@@ -170,8 +157,9 @@ export function Game({}) {
       engine.stop();
       engine.shutdown();
     };
-  }, [selectedColor]);
+  }, [selectedColor, tool]);
 
+  const paletteColorsPerRow = 6;
   const palette = [
     '#172038','#253a5e','#3c5e8b','#4f8fba','#73bed3','#a4dddb',
     '#19332d','#25562e','#468232','#75a743','#a8ca58','#d0da91',
@@ -182,8 +170,7 @@ export function Game({}) {
     '#090a14','#10141f','#151d28','#202e37','#394a50','#577277',
     '#819796','#a8b5b2','#c7cfcc','#ebede9','#00000000'
   ].reduce((acc, color, i) => {
-    // Group into rows of 12
-    if (i % 6 === 0) {
+    if (i % paletteColorsPerRow === 0) {
       acc.push([]);
     }
     acc[acc.length - 1].push(color);
@@ -195,16 +182,30 @@ export function Game({}) {
     drawPreview(previewCanvasRef);
   };
 
-  console.log('Game component rendering');
+
+  /**
+   * @param {string} toolName
+   * @param {string} iconClasses
+   */
+  const createToolButton = (toolName, iconClasses) => (
+    <div
+      className={
+        classNames('center border-2 items-center', {
+          'border-primary': tool === toolName,
+          'bg-primary': tool === toolName,
+          'bg-light': tool !== toolName
+        })
+      }
+      style={{ width: '32px', height: '32px' }}
+      onClick={() => { setTool(toolName); }}
+    >
+      <i className={iconClasses} style={{color: '#000000'}}></i>
+    </div>
+  );
 
   return (
     <Page includeGoats={false} includeNav={false}>
-      <div
-        className='pt----- flex-horizontal col-gap--'
-        // style={{
-        //   alignItems: 'center',
-        // }}
-      >
+      <div className='pt----- flex-horizontal col-gap--'>
         {/* Left-side controls panel */}
         <div className='flex-vertical row-gap--'>
           {/* Grid Size */}
@@ -270,6 +271,12 @@ export function Game({}) {
             />
           </div>
 
+          {/* Tools */}
+          <div className='flex-horizontal right col-gap'>
+            { createToolButton('pencil', 'fa-solid fa-pencil fa-xl') }
+            { createToolButton('fill', 'fa-solid fa-fill-drip fa-flip-horizontal fa-xl') }
+          </div>
+
           {/* Color Palette */}
           <div className='flex-vertical right'>
             {
@@ -325,27 +332,6 @@ export function Game({}) {
               />
             </div>
           </div>
-
-          {
-            /* Preview image */
-            capturedImgData && capturedImgData.length > 0 && (
-              <div
-                className='inline-flex-horizontal col-gap--'
-                style={{ alignItems: 'start' }}
-              >
-                <img src={capturedImgData}  />
-                {/* Icon of garbage bin that deletes the image when clicked */}
-                <button
-                  className='p- btn bg-dark grey border-2 border-rounded-2 border-grey hoverable hover-evil shadow'
-                  onClick={() => {
-                    setCapturedImgData(null);
-                  }}
-                >
-                  <i className='fas fa-trash' />
-                </button>
-              </div>
-            )
-          }
         </div>
       </div>
     </Page>
