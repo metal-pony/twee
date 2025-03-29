@@ -12,7 +12,7 @@ export default {
 
   output: {
     filename: 'main.js',
-    path: path.resolve('./dist'),
+    path: path.resolve('./docs'),
     publicPath: '/',
     clean: true
   },
