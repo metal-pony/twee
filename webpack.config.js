@@ -5,6 +5,8 @@ import CopyWebpackPlugin from 'copy-webpack-plugin';
 
 /** @type {import('webpack').Configuration} */
 export default {
+  mode: 'development',
+
   entry: './src/index.js',
 
   output: {
