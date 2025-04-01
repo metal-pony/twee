@@ -34,7 +34,7 @@
     "webpack-dev-server": "^5.2.0"
   },
   "dependencies": {
-    "@metal-pony/bucket-js": "https://github.com/metal-pony/bucket-js#v1.5.0",
+    "@metal-pony/bucket-js": "https://github.com/metal-pony/bucket-js#v1.5.1",
     "classnames": "^2.5.1",
     "react": "^19.0.0",
     "react-dom": "^19.0.0"
