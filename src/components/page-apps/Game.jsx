@@ -3,39 +3,115 @@ import { bounded, Engine, GridScene } from '@metal-pony/bucket-js';
 import Page from '../page/Page';
 import classNames from 'classnames';
 
+const transparent = '#00000000';
+const defaults = {
+  cellSize: 12,
+  width: 32,
+  height: 32,
+  grid: {
+    show: true,
+    size: 4
+  },
+  palette: [
+    '#172038','#253a5e','#3c5e8b','#4f8fba','#73bed3','#a4dddb',
+    '#19332d','#25562e','#468232','#75a743','#a8ca58','#d0da91',
+    '#4d2b32','#7a4841','#ad7757','#c09473','#d7b594','#e7d5b3',
+    '#341c27','#602c2c','#884b2b','#be772b','#de9e41','#e8c170',
+    '#241527','#411d31','#752438','#a53030','#cf573c','#da863e',
+    '#1e1d39','#402751','#7a367b','#a23e8c','#c65197','#df84a5',
+    '#090a14','#10141f','#151d28','#202e37','#394a50','#577277',
+    '#819796','#a8b5b2','#c7cfcc','#ebede9',transparent
+  ],
+  // defaultPalette[41]
+  initialColor: '#090a14'
+};
+
+const store = window.localStorage;
+const palette = (store.palette?.split(',')) || defaults.palette;
+
+/**
+ * Cell data is currently just cell color for rendering.
+ * Stored as a semicolon + comma separated string of color codes.
+ * This func splits the color codes back into cellData usable by the scene.
+ * @param {string} cellDataStr
+ * @returns {{ color: string }[][]}
+ */
+function hydrateCellData(cellDataStr) {
+  // Rows separated by ';', cols by ','
+  const data = cellDataStr.split(';').map(rowData => {
+    return rowData.split(',').map(cellData => ({ color: cellData }))
+  });
+  return data;
+}
+
+/**
+ * Packs up the cellData (color codes) into a large string.
+ * Used to store the cellData in the browser between sessions.
+ * @param {{ color: string }[][]} cellData
+ */
+function packCellData(cellData) {
+  return cellData.map(rowData => rowData.map(cell => cell.color).join(',')).join(';');
+}
+
+// Attempt to pull cell data from storage, default to null
+let cellData = null;
+try {
+  cellData = hydrateCellData(store.cellData);
+} catch (err) {
+  console.warn('Failed to pull cellData from storage.');
+  console.warn(err);
+}
+
 const scene = new GridScene({
   name: 'main',
   dims: {
-    cellSize: 12,
-    width: 32,
-    height: 32
+    cellSize: parseInt(store.cellSize) || defaults.cellSize,
+    width: parseInt(store.width) || defaults.width,
+    height: parseInt(store.height) || defaults.height,
   },
   bgColorCode: '#ffffff88',
-  showGrid: true,
+  showGrid: store.gridShow ? store.gridShow === 'true' : defaults.grid.show,
   gridProps: {
     colorCode: '#00ff00aa',
     sizeCells: 4
-  }
+  },
+  cellData
 });
 
-const transparent = '#00000000';
-const palette = [
-  '#172038','#253a5e','#3c5e8b','#4f8fba','#73bed3','#a4dddb',
-  '#19332d','#25562e','#468232','#75a743','#a8ca58','#d0da91',
-  '#4d2b32','#7a4841','#ad7757','#c09473','#d7b594','#e7d5b3',
-  '#341c27','#602c2c','#884b2b','#be772b','#de9e41','#e8c170',
-  '#241527','#411d31','#752438','#a53030','#cf573c','#da863e',
-  '#1e1d39','#402751','#7a367b','#a23e8c','#c65197','#df84a5',
-  '#090a14','#10141f','#151d28','#202e37','#394a50','#577277',
-  '#819796','#a8b5b2','#c7cfcc','#ebede9',transparent
-];
-const initialColor = palette[42];
+/**
+ * Actual cell data used directly in the Scene.
+ * Modifying this modifies the scene.
+ *
+ * ⚠️ Be careful not to put this data in a bad state.
+ */
+cellData = scene.cells;
+store.cellData = packCellData(cellData);
 
 const engine = new Engine();
 engine.addScene(scene);
 
+let lastChange = 0;
+let timeoutId = 0;
+const saveCellDataToStore = () => {
+  store.cellData = packCellData(cellData);
+  lastChange = 0;
+  timeoutId = 0;
+};
 /**
- *
+ * Triggers an autosave of the app state into localStorage after 5 seconds.
+ * Subsequent calls made before the save will reset the save timer.
+ */
+function autosaveIn5() {
+  // Called earlier but hasn't saved yet -> restart
+  if (lastChange > 0) {
+    clearTimeout(timeoutId);
+  }
+  lastChange = performance.now();
+  timeoutId = setTimeout(saveCellDataToStore, 5000);
+}
+
+/**
+ * Draws the scene data into the given preview canvas.
  * @param {React.RefObject<HTMLCanvasElement>} previewCanvasRef
  */
 function drawPreview(previewCanvasRef) {
@@ -46,17 +122,17 @@ function drawPreview(previewCanvasRef) {
     previewCanvas.width = scene.cols;
     previewCanvas.height = scene.rows;
     previewCtx.clearRect(0, 0, previewCanvas.width, previewCanvas.height);
-    for (const cellRow of scene.cells) {
-      for (const cell of cellRow) {
-        previewCtx.fillStyle = cell.data.color;
-        previewCtx.fillRect(cell.x, cell.y, 1, 1);
+    for (let y = 0; y < scene.rows; y++) {
+      for (let x = 0; x < scene.cols; x++) {
+        previewCtx.fillStyle = cellData[y][x].color;
+        previewCtx.fillRect(x, y, 1, 1);
       }
     }
   }
 }
 
 /**
- *
+ * Draws a pixel into the given preview canvas.
  * @param {React.RefObject<HTMLCanvasElement>} previewCanvasRef
  * @param {number} x
  * @param {number} y
@@ -81,7 +157,7 @@ export function Game({}) {
   const canvasRef = useRef(null);
   /** @type {React.RefObject<HTMLCanvasElement>}*/
   const previewCanvasRef = useRef(null);
-  const [selectedColor, setSelectedColor] = useState(initialColor);
+  const [selectedColor, setSelectedColor] = useState(defaults.initialColor);
   const [cellSize, setCellSize] = useState(scene.cellSize);
   const [gridWidth, setGridWidth] = useState(scene.cols);
   const [gridHeight, setGridHeight] = useState(scene.rows);
@@ -114,12 +190,11 @@ export function Game({}) {
             ({ x, y } = queue.shift());
             if (x < 0 || y < 0 || x >= scene.cols || y >= scene.rows) continue;
 
-            const cd = scene.cellData(x, y);
-            const c = cd.color;
-            if (c !== prevColor) continue;
+            const cellData = scene.cellData(x, y);
+            if (cellData.color !== prevColor) continue;
 
             count++;
-            cd.color = selectedColor;
+            cellData.color = selectedColor;
             drawPreviewPixel(previewCanvasRef, x, y, selectedColor);
 
             queue.push({ x, y: y - 1 });
@@ -127,11 +202,15 @@ export function Game({}) {
             queue.push({ x, y: y + 1 });
             queue.push({ y, x: x + 1 });
           }
+          if (count > 0) autosaveIn5();
         } else if (tool === 'pencil') {
           scene.cellData(x, y).color = selectedColor;
           drawPreviewPixel(previewCanvasRef, x, y, selectedColor);
+          autosaveIn5();
         } else if (tool === 'eraser') {
           scene.cellData(x, y).color = transparent;
+          drawPreviewPixel(previewCanvasRef, x, y, transparent);
+          autosaveIn5();
         }
 
         engine.render();
@@ -174,6 +253,7 @@ export function Game({}) {
 
         scene.cellData(x, y).color = newColor;
         drawPreviewPixel(previewCanvasRef, x, y, newColor);
+        autosaveIn5();
         engine.render();
       }
     }
@@ -194,6 +274,8 @@ export function Game({}) {
   }, [selectedColor, tool]);
 
   const paletteColorsPerRow = 6;
+  // TODO validate palette via reviver func
+  /** @type {string[]} */
   const paletteRows = palette.reduce((acc, color, i) => {
     if (i % paletteColorsPerRow === 0) {
       acc.push([]);
@@ -245,6 +327,7 @@ export function Game({}) {
                 const size = parseInt(ev.target.value);
                 setCellSize(size);
                 scene.cellSize = size;
+                store.cellSize = size;
                 engine.renderWithResize();
               }}
             />
@@ -260,6 +343,7 @@ export function Game({}) {
                 const size = parseInt(ev.target.value);
                 setGridWidth(size);
                 scene.cols = size;
+                store.width = size;
                 engine.renderWithResize();
                 drawPreview(previewCanvasRef);
               }}
@@ -276,6 +360,7 @@ export function Game({}) {
                 const size = parseInt(ev.target.value);
                 setGridHeight(size);
                 scene.rows = size;
+                store.height = size;
                 engine.renderWithResize();
                 drawPreview(previewCanvasRef);
               }}
@@ -291,6 +376,7 @@ export function Game({}) {
                 const shouldShowGrid = Boolean(ev.target.checked);
                 setShowGrid(shouldShowGrid);
                 scene.showGrid = shouldShowGrid;
+                store.gridShow = shouldShowGrid;
                 engine.render();
               }}
             />
