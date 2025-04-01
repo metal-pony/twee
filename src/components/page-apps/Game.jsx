@@ -23,7 +23,8 @@ const defaults = {
     '#819796','#a8b5b2','#c7cfcc','#ebede9',transparent
   ],
   // defaultPalette[41]
-  initialColor: '#090a14'
+  initialColor: '#090a14',
+  tool: 'pencil'
 };
 
 const store = window.localStorage;
@@ -162,7 +163,7 @@ export function Game({}) {
   const [gridWidth, setGridWidth] = useState(scene.cols);
   const [gridHeight, setGridHeight] = useState(scene.rows);
   const [showGrid, setShowGrid] = useState(scene.showGrid);
-  const [tool, setTool] = useState('pencil');
+  const [tool, setTool] = useState(store.tool || defaults.tool);
 
   useEffect(() => {
     const canvas = canvasRef?.current;
@@ -304,7 +305,10 @@ export function Game({}) {
         })
       }
       style={{ width: '32px', height: '32px' }}
-      onClick={() => { setTool(toolName); }}
+      onClick={() => {
+        setTool(toolName);
+        store.tool = toolName;
+      }}
     >
       <i className={iconClasses} style={{color: 'black'}}></i>
     </div>
